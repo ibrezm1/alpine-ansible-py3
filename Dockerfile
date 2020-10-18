@@ -1,3 +1,6 @@
+
+# docker run -it --rm ibrezm1/alpine-ansible-py3:412a5de /bin/sh
+  
 ARG ALPINE_VERSION=latest
 FROM alpine:${ALPINE_VERSION}
 
@@ -6,10 +9,14 @@ ARG ANSIBLE_VERSION="2.9.6"
 
 COPY ./entrypoint.sh /usr/local/bin
 
+RUN echo "===> Installing sudo to emulate normal OS behavior..."  && \
+    apk add --no-cache sudo bash                                        
+
+
 RUN set -euxo pipefail ;\
     sed -i 's/http\:\/\/dl-cdn.alpinelinux.org/https\:\/\/alpine.global.ssl.fastly.net/g' /etc/apk/repositories ;\
     apk add --no-cache --update --virtual .build-deps g++ python3-dev build-base libffi-dev openssl-dev ;\
-    apk add --no-cache --update python3 ca-certificates openssh-client sshpass dumb-init su-exec ;\
+    apk add --no-cache --update python3 ca-certificates openssh-client sshpass dumb-init su-exec openssh openrc;\
     if [ ! -e /usr/bin/python ]; then ln -sf python3 /usr/bin/python ; fi ;\
     echo "**** install pip ****" ;\
     python3 -m ensurepip ;\
@@ -27,8 +34,18 @@ RUN set -euxo pipefail ;\
     chmod +x /usr/local/bin/entrypoint.sh ;\
     adduser -s /bin/ash -u 1000 -D -h /ansible ansible
 
+RUN echo "===> Adding hosts for convenience..."  && \
+    mkdir -p /etc/ansible                        && \
+    echo 'localhost' > /etc/ansible/hosts        && \
+	sed -i 's/#*PermitRootLogin prohibit-password/PermitRootLogin yes/g' /etc/ssh/sshd_config   && \
+	sed -i 's/#*PasswordAuthentication yes/PasswordAuthentication yes/g' /etc/ssh/sshd_config   && \
+	sed -i 's/#*PermitEmptyPasswords no/PermitEmptyPasswords yes/g' /etc/ssh/sshd_config   && \
+    echo 'root:pass' | chpasswd
 
-WORKDIR /ansible
-
-ENTRYPOINT ["/usr/bin/dumb-init","--","entrypoint.sh"]
-CMD ["/bin/sh"]
+RUN ssh-keygen -A   && \
+    rc-status  && \
+    touch /run/openrc/softlevel && \
+    /etc/init.d/sshd start 
+	
+	
+CMD ["/bin/bash"]

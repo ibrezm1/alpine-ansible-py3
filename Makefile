@@ -1,7 +1,7 @@
-DOCKERHUB_USER = jones2748
+DOCKERHUB_USER = ibrezm1
 REPONAME = alpine-ansible-py3
 DOCKERHUB = $(DOCKERHUB_USER)/$(REPONAME)
-GITHUB_USER = joxz
+GITHUB_USER = ibrezm1
 GITHUB = https://github.com/$(GITHUB_USER)/$(REPONAME)
 VER = $(shell git rev-parse --short HEAD)
 CONTAINERNAME = $(DOCKERHUB):$(VER)
